@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Plick · Spike impresión web BT</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #1e293b;
+        --border: #334155;
+        --text: #e2e8f0;
+        --muted: #94a3b8;
+        --accent: #6366f1;
+        --ok: #22c55e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 16px;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 { font-size: 18px; margin: 4px 0 2px; }
+      .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+      .group {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .group h2 {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--muted);
+        margin: 0 0 10px;
+      }
+      .row { display: flex; flex-wrap: wrap; gap: 8px; }
+      button {
+        flex: 1 1 auto;
+        min-width: 140px;
+        background: var(--accent);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 14px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:active { transform: scale(0.98); }
+      button.secondary { background: #475569; }
+      button.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+      #log {
+        background: #020617;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        height: 46vh;
+        overflow-y: auto;
+        font-family: 'SF Mono', Menlo, Consolas, monospace;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+      code { background: #0b1220; padding: 1px 5px; border-radius: 4px; color: #a5b4fc; }
+    </style>
+  </head>
+  <body>
+    <h1>🧾 Plick · Spike impresión web Bluetooth</h1>
+    <div class="sub">
+      Valida si una térmica BT genérica es usable desde el navegador (Web Bluetooth BLE)
+      y compara Web Serial / WebUSB. Proyecto throwaway.
+    </div>
+
+    <div class="group">
+      <h2>1 · Web Bluetooth (BLE)</h2>
+      <div class="row">
+        <button id="btn-diagnose">Diagnóstico (¿BLE o SPP?)</button>
+        <button id="btn-print">Imprimir (encoder propio)</button>
+        <button id="btn-print-niels" class="secondary">Imprimir (encoder Niels)</button>
+        <button id="btn-reconnect" class="secondary">Auto-reconnect (sin gesto)</button>
+      </div>
+      <div class="hint">
+        Empieza por <strong>Diagnóstico</strong>: si tu impresora no aparece en el chooser
+        pero sí está en los ajustes BT del sistema → es <strong>Bluetooth Clásico/SPP</strong>
+        → Web Bluetooth no sirve para ella.
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>1b · Auto-print (simula pedidos por socket)</h2>
+      <div class="row" style="align-items: center">
+        <label class="hint" style="flex: 0 0 auto">
+          cada
+          <input
+            id="auto-interval"
+            type="number"
+            value="15"
+            min="3"
+            style="width: 60px; padding: 6px; border-radius: 8px; border: 1px solid var(--border); background: #0b1220; color: var(--text)"
+          />
+          s
+        </label>
+        <button id="btn-auto-start" style="background: var(--ok)">▶ Iniciar simulación</button>
+        <button id="btn-auto-stop" class="secondary">⏹ Detener</button>
+      </div>
+      <div class="hint">
+        Empareja primero con <strong>Diagnóstico</strong> o <strong>Imprimir</strong> (1 gesto).
+        Luego inicia: debe imprimir solo, <strong>sin que toques nada</strong>, reconectando
+        si la impresora se duerme. Es el caso real "pedido por socket → imprime".
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>2 · Alternativas (Chromium desktop / Android)</h2>
+      <div class="row">
+        <button id="btn-serial" class="secondary">Web Serial</button>
+        <button id="btn-usb" class="secondary">WebUSB</button>
+        <button id="btn-clear" class="ghost">Limpiar log</button>
+      </div>
+    </div>
+
+    <div class="group">
+      <h2>Log</h2>
+      <div id="log"></div>
+      <div class="hint">
+        Apoyo: <code>chrome://bluetooth-internals</code> · <code>chrome://flags</code> ·
+        nRF Connect (móvil) para ver servicios GATT reales.
+      </div>
+    </div>
+
+    <script type="module" src="./spike.js"></script>
+  </body>
+</html>

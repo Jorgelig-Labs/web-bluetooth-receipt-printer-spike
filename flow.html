@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Plick · Flujo real (multi-impresora)</title>
+    <style>
+      :root {
+        --bg: #0f172a; --panel: #1e293b; --border: #334155;
+        --text: #e2e8f0; --muted: #94a3b8; --accent: #6366f1; --ok: #22c55e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: var(--bg); color: var(--text); padding: 16px; max-width: 600px; margin: 0 auto;
+      }
+      h1 { font-size: 17px; margin: 4px 0 2px; }
+      .sub { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+      .card {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 16px; padding: 20px; margin-bottom: 12px;
+      }
+      .center { text-align: center; }
+      .big-emoji { font-size: 48px; line-height: 1; margin-bottom: 6px; }
+      .card h2 { font-size: 19px; margin: 6px 0; }
+      .card p { color: var(--muted); font-size: 14px; margin: 6px 0 14px; }
+      button {
+        width: 100%; background: var(--accent); color: #fff; border: none;
+        border-radius: 12px; padding: 14px; font-size: 16px; font-weight: 700; cursor: pointer;
+        margin-top: 8px;
+      }
+      button.big { padding: 18px; font-size: 18px; background: var(--ok); }
+      button.secondary { background: #475569; font-size: 14px; padding: 11px; font-weight: 600; }
+      button.ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 10px; }
+      button:active { transform: scale(0.98); }
+
+      /* Tarjeta de impresora */
+      .pcard { background: #0b1220; border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+      .pcard-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .plabel { font-size: 17px; font-weight: 800; color: #fff; }
+      .pname { font-size: 12px; color: var(--muted); font-family: 'SF Mono', Menlo, monospace; }
+      .assign-name { display: inline-block; background: #0b1220; border: 1px solid var(--border); border-radius: 8px; padding: 4px 10px; font-weight: 700; color: #a5b4fc; font-family: 'SF Mono', Menlo, monospace; }
+      .pstatus { margin-left: auto; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; }
+      .pstatus.on { color: #052e16; background: var(--ok); }
+      .pstatus.off { color: var(--muted); border: 1px solid var(--border); }
+      .pcard-sub { font-size: 12px; color: var(--muted); margin: 8px 0 10px; }
+      .pcard-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+      .mini { width: auto; flex: 1 1 auto; padding: 11px 12px; font-size: 14px; margin-top: 0; }
+      .mini.ok { background: var(--ok); }
+      .mini.print { background: var(--accent); }
+      .mini.ghost { flex: 0 0 auto; background: transparent; border: 1px solid var(--border); color: var(--muted); }
+
+      .global { margin-top: 6px; }
+      .auto-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+      .auto-row .hint { margin: 0; }
+      input[type='number'] {
+        width: 60px; padding: 8px; border-radius: 8px; border: 1px solid var(--border);
+        background: #0b1220; color: var(--text); font-size: 15px;
+      }
+      .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+      /* Editor de datos del ticket */
+      .td-editor { background: #0b1220; border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 12px; }
+      .td-title { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 8px; }
+      .td-label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+      .td-input {
+        width: 100%; padding: 9px; border-radius: 8px; border: 1px solid var(--border);
+        background: #020617; color: var(--text); font-size: 14px; font-family: inherit;
+      }
+      textarea.td-input { resize: vertical; font-family: 'SF Mono', Menlo, monospace; font-size: 13px; }
+      #log {
+        background: #020617; border: 1px solid var(--border); border-radius: 12px;
+        padding: 10px; height: 24vh; overflow-y: auto; margin-top: 12px;
+        font-family: 'SF Mono', Menlo, Consolas, monospace; font-size: 11px; line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🧾 Plick · Flujo real — multi-impresora</h1>
+    <div class="sub">
+      Caja, Cocina y más. La 1ª vez agregas; las siguientes solo confirmas. Imprime manual en cada una.
+    </div>
+
+    <!-- VACÍO: primera impresora -->
+    <div class="card center" id="scr-empty" style="display: none">
+      <div class="big-emoji">🖨️</div>
+      <h2>Conecta tu primera impresora</h2>
+      <p>Enciende tu impresora de tickets y tócala en la lista. Solo esta vez.</p>
+      <button class="big" id="btn-add-first">🔍 Agregar impresora</button>
+    </div>
+
+    <!-- ASIGNAR ROL: tras agregar una nueva impresora -->
+    <div class="card center" id="scr-assign" style="display: none">
+      <div class="big-emoji">🖨️</div>
+      <h2>¿Para qué usarás esta impresora?</h2>
+      <p>Conectada: <span class="assign-name" id="assign-name">—</span></p>
+      <button class="big" id="btn-role-caja" style="background: var(--accent)">🧾 Caja — ticket completo</button>
+      <button class="big" id="btn-role-cocina">👨‍🍳 Cocina — comanda</button>
+      <button class="secondary" id="btn-role-other">✏️ Otra (ponle nombre)</button>
+      <button class="ghost" id="btn-assign-cancel">Cancelar</button>
+      <div class="hint">Tú eliges el rol; de ahí salen el nombre y el tipo de ticket.</div>
+    </div>
+
+    <!-- PANEL: lista de impresoras -->
+    <div class="card" id="scr-panel" style="display: none">
+      <h2 id="panel-title" style="text-align: center">👋 ¡Hola de nuevo!</h2>
+      <p id="panel-sub" style="text-align: center">Confirma tus impresoras de hoy.</p>
+
+      <div id="printer-list"></div>
+
+      <button class="big" id="btn-confirm-all" style="display: none">✅ Confirmar todas</button>
+      <button class="secondary" id="btn-add">➕ Agregar otra impresora</button>
+      <button class="mini print" id="btn-print-all" style="width: 100%; margin-top: 8px">🖨️ Imprimir en todas (un pedido)</button>
+
+      <!-- Editor de datos simulados del ticket -->
+      <div class="td-editor">
+        <div class="td-title">🧾 Datos del ticket (simulados)</div>
+        <label class="td-label">Negocio</label>
+        <input class="td-input" id="td-business" type="text" />
+        <label class="td-label">Productos (uno por línea — <em>nombre | precio</em>)</label>
+        <textarea class="td-input" id="td-items" rows="3"></textarea>
+        <label class="td-label">Total</label>
+        <input class="td-input" id="td-total" type="text" />
+        <div class="hint" style="margin-top: 4px">
+          La <strong>comanda</strong> (Cocina) muestra solo nombres; el <strong>ticket</strong> (Caja) muestra precios y total.
+        </div>
+      </div>
+
+      <div class="auto-row">
+        <span class="hint">Pedido cada</span>
+        <input id="auto-int" type="number" value="15" min="3" />
+        <span class="hint">s</span>
+        <button class="mini print" id="btn-auto-start" style="flex: 1">▶ Simular pedidos</button>
+        <button class="mini ghost" id="btn-auto-stop">⏹</button>
+        <span class="hint" id="auto-status"></span>
+      </div>
+
+      <button class="secondary" id="btn-disconnect-all">🔌 Desconectar (liberar para otro equipo)</button>
+      <button class="secondary" id="btn-reload">🔄 Simular cerrar y reabrir el panel</button>
+      <button class="ghost" id="btn-forget-all">🗑️ Olvidar todas (equipo nuevo)</button>
+    </div>
+
+    <div id="log"></div>
+    <div class="hint">
+      Cada pedido se imprime en <strong>todas</strong> las conectadas (Caja=ticket, Cocina=comanda),
+      igual que hoy. La persistencia real va en el <strong>perfil del comercio</strong> (backend).
+    </div>
+
+    <script type="module" src="./flow.js?v=3"></script>
+  </body>
+</html>
