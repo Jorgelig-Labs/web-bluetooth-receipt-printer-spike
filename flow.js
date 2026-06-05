@@ -349,6 +349,81 @@ async function confirmAll() {
   }
 }
 
+// Muestra el aviso de que falta el flag para reconectar sin diálogo.
+function showFlagBanner() {
+  const b = document.getElementById('flag-banner');
+  if (b) b.style.display = 'block';
+}
+
+// Reconecta en segundo plano cuando la impresora "aparece" en el aire (despierta /
+// vuelve a rango). Mismo patrón que el escenario 3 del playground (spike.js).
+function watchAndReconnect(device) {
+  if (!device.watchAdvertisements) return;
+  const onAdv = async () => {
+    device.removeEventListener('advertisementreceived', onAdv);
+    try {
+      await attachDevice(device);
+      for (const p of state.printers) {
+        if (p.deviceId === device.id || p.deviceName === device.name) p.deviceId = device.id;
+      }
+      resolveShared();
+      persist();
+      log(`🔄 "${device.name || device.id}" apareció → reconectada sin diálogo.`, 'ok');
+      render();
+    } catch (e) {
+      log(`Reconexión falló: ${e.message}`, 'err');
+    }
+  };
+  device.addEventListener('advertisementreceived', onAdv, { once: true });
+  device.watchAdvertisements().catch((e) => {
+    device.removeEventListener('advertisementreceived', onAdv);
+    log(`watchAdvertisements no disponible (${e.message}).`, 'dim');
+  });
+}
+
+// Reconexión SILENCIOSA al cargar la página. Nunca llama requestDevice() (eso exigiría
+// un gesto del usuario), así que es seguro dispararla en el arranque.
+async function autoReconnect() {
+  resolveShared(); // reusar conexiones físicas ya abiertas
+  let pending = state.printers.filter((p) => !isConnected(p));
+  if (!pending.length) return;
+
+  if (!navigator.bluetooth?.getDevices) {
+    showFlagBanner();
+    log('Reconexión automática no disponible (activa el flag). Usa "Confirmar".', 'warn');
+    return;
+  }
+
+  let known = [];
+  try {
+    known = await navigator.bluetooth.getDevices();
+  } catch (e) {
+    log(`getDevices falló (${e.message}).`, 'dim');
+    return;
+  }
+
+  // Una sola conexión por dispositivo FÍSICO (varios slots pueden compartirlo).
+  const seen = new Set();
+  for (const p of pending) {
+    const m = known.find((d) => d.id === p.deviceId) || known.find((d) => d.name === p.deviceName);
+    if (!m || seen.has(m.id)) continue;
+    seen.add(m.id);
+    try {
+      await attachDevice(m); // gatt.connect() SIN gesto (impresora encendida y en rango)
+      p.deviceId = m.id;
+    } catch {
+      watchAndReconnect(m); // dormida/fuera de rango → reconecta sola al despertar
+    }
+  }
+  resolveShared();
+  persist();
+  render();
+
+  const rest = state.printers.filter((p) => !isConnected(p));
+  if (!rest.length) log('🎉 Todas reconectadas sin diálogo.', 'ok');
+  else log(`Reconectando en segundo plano: ${[...new Set(rest.map((p) => p.label))].join(', ')}…`, 'dim');
+}
+
 async function manualPrint(profile) {
   try {
     const ch = await ensureReady(profile);
@@ -619,4 +694,5 @@ window.addEventListener('DOMContentLoaded', () => {
   });
 
   render();
+  autoReconnect(); // reconexión silenciosa al cargar (no usa requestDevice → no necesita gesto)
 });

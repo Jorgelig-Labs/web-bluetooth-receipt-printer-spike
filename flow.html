@@ -81,6 +81,17 @@
       Caja, Cocina y más. La 1ª vez agregas; las siguientes solo confirmas. Imprime manual en cada una.
     </div>
 
+    <!-- AVISO: flag necesario para reconectar sin tap -->
+    <div id="flag-banner" class="card" style="display: none; border-color: #fbbf24; padding: 14px">
+      <strong style="color: #fbbf24">⚠️ Para reconectar sin tocar nada</strong>
+      <p style="margin: 6px 0 0">
+        Tu navegador no expone <code>getDevices()</code>, así que cada recarga pide un toque.
+        Actívalo una vez: abre
+        <code style="color: #a5b4fc">chrome://flags/#enable-web-bluetooth-new-permissions-backend</code>,
+        ponlo en <strong>Enabled</strong> y relanza Chrome. Luego la reconexión será automática.
+      </p>
+    </div>
+
     <!-- VACÍO: primera impresora -->
     <div class="card center" id="scr-empty" style="display: none">
       <div class="big-emoji">🖨️</div>
@@ -146,6 +157,6 @@
       igual que hoy. La persistencia real va en el <strong>perfil del comercio</strong> (backend).
     </div>
 
-    <script type="module" src="./flow.js?v=3"></script>
+    <script type="module" src="./flow.js?v=4"></script>
   </body>
 </html>
